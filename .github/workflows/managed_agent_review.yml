@@ -1,0 +1,44 @@
+name: Autonomous Managed Agent Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Pull Request number to review manually"
+        required: false
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install google-genai requests
+
+      - name: Run Autonomous Managed Agent PR Review
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+          REVIEW_SKILL: "pr_review"
+          PERSIST: "1"
+        run: |
+          python review_pr_action.py
